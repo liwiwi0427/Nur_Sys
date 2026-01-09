@@ -1,7 +1,7 @@
 // 工作人員名單：新增職稱(title)
 const initialStaff = [
-    { id: "A001", name: "王大明", password: "123", role: "ADMIN", title: "護理長" },
-    { id: "N001", name: "林小美", password: "123", role: "RN", title: "護理師" },
+    { id: "N90221", name: "黎哲瑋", password: "A11516", role: "ADMIN", title: "護理長" },
+    { id: "N93610", name: "唐若素", password: "936103", role: "RN", title: "護理師" },
     { id: "N002", name: "張大華", password: "123", role: "RN", title: "護理師" }
 ];
 
