@@ -1,33 +1,23 @@
-/* 側邊欄滑動動畫 */
+:root { --sidebar-w: 280px; }
+
+/* 修正手機 100vh 問題 */
+html, body { height: 100%; margin: 0; padding: 0; overflow: hidden; }
+
+.nav-btn.active {
+    background-color: #1e293b;
+    border-left: 4px solid #3b82f6;
+    color: #3b82f6;
+}
+
+/* 側邊欄滑動 */
 #sidebar {
-    transition: transform 0.3s ease-in-out;
+    transition: transform 0.3s ease;
+    z-index: 50;
 }
 
-@media (max-width: 1024px) {
-    .sidebar-closed {
-        transform: translateX(-100%);
-    }
-    .sidebar-open {
-        transform: translateX(0);
-    }
+@media (max-width: 1023px) {
+    #sidebar { transform: translateX(-100%); position: fixed; height: 100%; }
+    #sidebar.show { transform: translateX(0); }
 }
 
-/* 導覽按鈕啟用狀態 */
-.nav-active {
-    background-color: #1e293b !important;
-    border-left: 4px solid #3b82f6 !important;
-    color: #3b82f6 !important;
-}
-
-/* 防止手機端表格破版 */
-.table-responsive {
-    display: block;
-    width: 100%;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-}
-
-/* 修正手機輸入框縮放問題 */
-input, select, textarea {
-    font-size: 16px !important; 
-}
+.no-scrollbar::-webkit-scrollbar { display: none; }
