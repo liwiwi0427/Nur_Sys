@@ -5,12 +5,22 @@ const initialStaff = [
     { id: "N002", name: "張大華", password: "123", role: "RN", title: "護理師" }
 ];
 
-// 病患名單：新增病房區域(ward)
+// 初始病患與其專屬藥單
 const initialPatients = [
-    { id: "P001", name: "張三", bed: "701-1", ward: "7F 內科病房", age: 75, diagnosis: "肺炎", history: [] },
-    { id: "P002", name: "李四", bed: "701-2", ward: "7F 內科病房", age: 62, diagnosis: "心衰竭", history: [] },
-    { id: "P003", name: "王五", bed: "805-1", ward: "8F 外科病房", age: 45, diagnosis: "闌尾炎", history: [] },
-    { id: "P004", name: "趙六", bed: "805-2", ward: "8F 外科病房", age: 30, diagnosis: "骨折", history: [] }
+    { 
+        id: "P001", name: "張三", bed: "701-1", ward: "7F 內科病房", age: 75, diagnosis: "肺炎",
+        medications: [
+            { id: 1, name: "Aspirin", dose: "100mg", route: "PO", freq: "QD" }
+        ],
+        history: [] 
+    },
+    { 
+        id: "P002", name: "李四", bed: "805-2", ward: "8F 外科病房", age: 62, diagnosis: "骨折",
+        medications: [
+            { id: 2, name: "Morphine", dose: "5mg", route: "IV", freq: "PRN" }
+        ],
+        history: [] 
+    }
 ];
 
-const wards = ["全部區域", "7F 內科病房", "8F 外科病房"];
+const wardList = ["全部區域", "7F 內科病房", "8F 外科病房"];
