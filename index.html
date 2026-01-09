@@ -3,88 +3,62 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OmniNurse Pro | 智慧護理系統</title>
+    <title>OmniNurse Pro v2</title>
     <link rel="stylesheet" href="style.css">
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
 <body class="bg-gray-100">
 
-    <div id="app">
-        <!-- 登入頁面 -->
-        <div id="login-page" class="h-screen flex items-center justify-center bg-slate-900">
-            <div class="bg-white p-10 rounded-2xl shadow-2xl w-96">
-                <div class="text-center mb-6">
-                    <h1 class="text-3xl font-bold text-blue-900">OmniNurse</h1>
-                    <p class="text-gray-400">醫事人員登錄介面</p>
-                </div>
-                <input type="text" id="login-id" placeholder="員工編號" class="w-full border p-3 rounded mb-4">
-                <input type="password" id="login-pw" placeholder="密碼" class="w-full border p-3 rounded mb-6">
-                <button onclick="handleLogin()" class="w-full bg-blue-600 text-white py-3 rounded-lg font-bold hover:bg-blue-700">登入系統</button>
-                <p id="login-error" class="text-red-500 text-sm mt-4 hidden text-center">員編或密碼錯誤</p>
+    <div id="login-page" class="h-screen flex items-center justify-center bg-slate-900">
+        <div class="bg-white p-10 rounded-2xl shadow-2xl w-96 text-center">
+            <h1 class="text-3xl font-bold text-blue-900 mb-8">OmniNurse</h1>
+            <input type="text" id="login-id" placeholder="員工編號" class="w-full border p-3 rounded-xl mb-4">
+            <input type="password" id="login-pw" placeholder="密碼" class="w-full border p-3 rounded-xl mb-6">
+            <button onclick="handleLogin()" class="w-full bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700">登入系統</button>
+            <p id="login-error" class="text-red-500 text-sm mt-4 hidden">帳號或密碼錯誤</p>
+        </div>
+    </div>
+
+    <div id="main-system" class="hidden flex h-screen overflow-hidden">
+        <aside class="w-72 bg-slate-800 text-white flex flex-col">
+            <div class="p-6 border-b border-slate-700">
+                <div class="text-2xl font-bold text-blue-400">OmniNurse</div>
+                <div id="user-display" class="mt-4 p-3 bg-slate-700 rounded-lg text-sm border-l-4 border-blue-500"></div>
             </div>
-        </div>
+            <nav class="flex-1 p-4 space-y-1 overflow-y-auto">
+                <button onclick="switchView('patients')" class="nav-btn w-full text-left p-3 rounded hover:bg-slate-700"><i class="fa fa-bed mr-2"></i>病患清單</button>
+                <button onclick="switchView('mar')" class="nav-btn w-full text-left p-3 rounded hover:bg-slate-700"><i class="fa fa-pills mr-2"></i>給藥系統 (MAR)</button>
+                <button onclick="switchView('assessment')" class="nav-btn w-full text-left p-3 rounded hover:bg-slate-700"><i class="fa fa-file-waveform mr-2"></i>專業護理評估</button>
+                <button onclick="switchView('settings')" class="nav-btn w-full text-left p-3 rounded hover:bg-slate-700"><i class="fa fa-key mr-2"></i>修改密碼</button>
+                <button id="admin-staff-btn" onclick="switchView('staff')" class="hidden nav-btn w-full text-left p-3 rounded hover:bg-slate-700 text-yellow-400 font-bold"><i class="fa fa-users-gear mr-2"></i>人員管理</button>
+            </nav>
+            <div class="p-4 border-t border-slate-700">
+                <button onclick="location.reload()" class="w-full text-red-400 text-sm hover:underline">安全登出</button>
+            </div>
+        </aside>
 
-        <!-- 主系統 -->
-        <div id="main-system" class="hidden flex h-screen overflow-hidden">
-            <!-- 側邊欄 -->
-            <aside class="w-72 bg-slate-800 text-white flex flex-col shadow-xl">
-                <div class="p-6 border-b border-slate-700">
-                    <div class="text-2xl font-bold text-blue-400">OmniNurse Pro</div>
-                    <div id="user-profile" class="mt-4 text-sm bg-slate-700 p-3 rounded-lg border-l-4 border-blue-500">
-                        <!-- 職稱 姓名 員編 會顯示在這 -->
-                    </div>
+        <main class="flex-1 flex flex-col">
+            <header class="bg-white border-b p-4 flex justify-between items-center shadow-sm">
+                <div class="flex items-center space-x-4">
+                    <select id="ward-select" onchange="switchView('patients')" class="border-2 p-2 rounded-lg"></select>
+                    <span id="active-patient-header" class="font-bold text-blue-700 bg-blue-50 px-4 py-2 rounded-full">未選取病患</span>
                 </div>
-                <nav class="flex-1 p-4 space-y-2">
-                    <button onclick="switchView('patients')" class="nav-btn w-full text-left p-3 rounded hover:bg-slate-700"><i class="fa fa-bed mr-2"></i> 病患管理</button>
-                    <button onclick="switchView('mar')" class="nav-btn w-full text-left p-3 rounded hover:bg-slate-700"><i class="fa fa-pills mr-2"></i> 給藥系統 (MAR)</button>
-                    <button onclick="switchView('assessment')" class="nav-btn w-full text-left p-3 rounded hover:bg-slate-700"><i class="fa fa- stethoscope mr-2"></i> 護理評估</button>
-                    <button onclick="switchView('staff')" id="admin-nav" class="nav-btn hidden w-full text-left p-3 rounded hover:bg-slate-700 text-yellow-400"><i class="fa fa-user-shield mr-2"></i> 系統人員管理</button>
-                </nav>
-                <div class="p-6 border-t border-slate-700">
-                    <button onclick="logout()" class="w-full bg-red-900/50 hover:bg-red-800 text-red-200 py-2 rounded transition">安全登出</button>
-                </div>
-            </aside>
+                <div id="clock" class="text-gray-400 font-mono"></div>
+            </header>
+            <section id="content-area" class="flex-1 p-8 overflow-y-auto"></section>
+        </main>
+    </div>
 
-            <!-- 主內容區 -->
-            <main class="flex-1 flex flex-col bg-gray-50">
-                <header class="bg-white border-b p-4 flex justify-between items-center shadow-sm">
-                    <div class="flex items-center space-x-4">
-                        <label class="font-bold text-gray-600"><i class="fa fa-hospital"></i> 切換樓層病房：</label>
-                        <select id="ward-selector" onchange="filterWard()" class="border p-2 rounded-lg bg-gray-50 font-medium outline-none border-blue-300">
-                            <!-- 樓層選項 -->
-                        </select>
-                    </div>
-                    <div class="flex items-center space-x-4">
-                        <span id="active-info" class="font-bold text-blue-800 bg-blue-50 px-4 py-2 rounded-full border border-blue-200">請先選擇病患</span>
-                        <div id="current-time" class="text-gray-400 text-sm font-mono"></div>
-                    </div>
-                </header>
-
-                <section id="content-area" class="flex-1 p-8 overflow-y-auto">
-                    <!-- 內容動態生成 -->
-                </section>
-            </main>
-        </div>
-
-        <!-- 簽章驗證視窗 (密碼簽章) -->
-        <div id="sign-modal" class="hidden fixed inset-0 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center z-50">
-            <div class="bg-white p-8 rounded-2xl shadow-2xl w-96">
-                <h3 class="text-xl font-bold mb-2">身分電子簽章確認</h3>
-                <p class="text-gray-500 text-sm mb-6">此操作將被永久記錄於病歷追蹤中</p>
-                
-                <div class="bg-blue-50 p-4 rounded-lg mb-6">
-                    <div class="text-xs text-blue-600 font-bold uppercase">簽署人身分</div>
-                    <div id="sig-display-name" class="font-bold text-lg"></div>
-                </div>
-
-                <label class="block text-sm font-bold mb-2">請輸入您的個人密碼：</label>
-                <input type="password" id="sig-password" class="w-full border-2 border-gray-200 p-3 rounded-xl focus:border-blue-500 outline-none mb-6">
-                
-                <div class="flex space-x-3">
-                    <button onclick="closeSignModal()" class="flex-1 py-3 bg-gray-100 rounded-xl font-bold">取消</button>
-                    <button onclick="confirmSign()" class="flex-1 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700">確認簽署</button>
-                </div>
+    <!-- 簽章彈窗 -->
+    <div id="sign-modal" class="hidden fixed inset-0 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center z-50">
+        <div class="bg-white p-8 rounded-2xl shadow-2xl w-96">
+            <h3 class="text-xl font-bold mb-4">電子簽章確認</h3>
+            <div id="sig-info" class="text-sm text-blue-600 font-bold mb-4 border-b pb-2"></div>
+            <input type="password" id="sig-pw" placeholder="輸入密碼確認" class="w-full border-2 p-3 rounded-xl mb-6">
+            <div class="flex space-x-3">
+                <button onclick="closeSign()" class="flex-1 py-3 bg-gray-100 rounded-xl">取消</button>
+                <button onclick="confirmSign()" class="flex-1 py-3 bg-blue-600 text-white rounded-xl font-bold">確認簽署</button>
             </div>
         </div>
     </div>
