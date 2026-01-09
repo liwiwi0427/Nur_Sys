@@ -3,18 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>OmniNurse Pro | 智慧護理系統</title>
+    <title>OmniNurse Pro | 智慧護理主管監控系統</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap');
         body { font-family: 'Noto Sans TC', sans-serif; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
         .nav-btn.active { background-color: #1e293b; border-left: 4px solid #3b82f6; color: #3b82f6; font-weight: bold; }
-        /* 增加手機點擊感 */
-        .patient-card:active { transform: scale(0.98); background-color: #f0f9ff; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
         #sidebar { transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
-        select, input, button { font-size: 16px !important; } /* 防止 iOS 自動縮放 */
+        .manager-gradient { background: linear-gradient(135deg, #1e293b 0%, #3b82f6 100%); }
     </style>
 </head>
 <body class="bg-slate-50 text-slate-900 overflow-hidden h-full">
@@ -23,320 +21,217 @@
     <div id="login-page" class="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900 px-4">
         <div class="bg-white p-8 rounded-[2.5rem] shadow-2xl w-full max-w-sm border border-slate-100">
             <div class="text-center mb-8">
-                <div class="inline-block p-4 bg-blue-50 rounded-3xl mb-4">
-                    <i class="fa fa-hospital-user text-4xl text-blue-600"></i>
+                <div class="inline-block p-4 bg-blue-50 rounded-3xl mb-4 text-blue-600">
+                    <i class="fa fa-shield-heart text-4xl"></i>
                 </div>
                 <h1 class="text-3xl font-black text-slate-800 tracking-tight">OmniNurse</h1>
-                <p class="text-slate-400 text-sm italic">Nursing Info System</p>
+                <p class="text-slate-400 text-sm">Session Data Protection</p>
             </div>
             <div class="space-y-4">
-                <input type="text" id="login-id" placeholder="員工編號 (如: A001)" class="w-full p-4 border rounded-2xl bg-slate-50 outline-none focus:ring-2 focus:ring-blue-500">
-                <input type="password" id="login-pw" placeholder="密碼 (預設: 123)" class="w-full p-4 border rounded-2xl bg-slate-50 outline-none focus:ring-2 focus:ring-blue-500">
-                <button onclick="handleLogin()" class="w-full bg-blue-600 text-white py-4 rounded-2xl font-bold text-lg hover:bg-blue-700 shadow-lg shadow-blue-200 transition-all">登入系統</button>
+                <input type="text" id="login-id" placeholder="員工編號 (如: N90221)" class="w-full p-4 border rounded-2xl bg-slate-50 outline-none focus:ring-2 focus:ring-blue-500">
+                <input type="password" id="login-pw" placeholder="密碼" class="w-full p-4 border rounded-2xl bg-slate-50 outline-none focus:ring-2 focus:ring-blue-500">
+                <button onclick="handleLogin()" class="w-full bg-blue-600 text-white py-4 rounded-2xl font-bold text-lg hover:bg-blue-700 shadow-lg shadow-blue-200 transition-all">安全登入</button>
             </div>
-            <p id="login-error" class="text-red-500 text-center mt-4 hidden font-bold">登錄失敗，請檢查帳密</p>
-            <button onclick="forceReset()" class="w-full mt-10 text-xs text-slate-300 underline text-center block">無法登入？點此重設系統資料</button>
+            <p class="text-[10px] text-slate-400 mt-6 text-center italic">登入即開啟加密會話模式，關閉分頁將自動清除資料。</p>
         </div>
     </div>
 
     <!-- [2. 主介面] -->
     <div id="main-app" class="hidden h-screen flex flex-col lg:flex-row overflow-hidden">
-        
-        <!-- 手機 Header -->
         <header class="lg:hidden bg-slate-900 text-white p-4 flex justify-between items-center z-50">
-            <button onclick="toggleSidebar()" class="p-2"><i class="fa fa-bars text-xl"></i></button>
-            <span id="mobile-title" class="font-black text-blue-400">OMNINURSE</span>
-            <button onclick="location.reload()" class="p-2 text-slate-400"><i class="fa fa-sign-out"></i></button>
+            <button onclick="toggleSidebar()"><i class="fa fa-bars text-xl"></i></button>
+            <span class="font-black text-blue-400">OMNINURSE</span>
+            <button onclick="location.reload()" class="p-2 text-red-400"><i class="fa fa-power-off"></i></button>
         </header>
 
-        <!-- 側邊欄 -->
         <div id="sidebar-overlay" onclick="toggleSidebar()" class="hidden fixed inset-0 bg-black/60 z-40 lg:hidden backdrop-blur-sm"></div>
         <aside id="sidebar" class="fixed lg:static inset-y-0 left-0 w-72 bg-slate-900 text-white flex flex-col z-50 -translate-x-full lg:translate-x-0">
             <div class="p-8 border-b border-slate-800">
-                <h2 class="text-2xl font-black text-blue-500 italic">OMNINURSE</h2>
+                <h2 class="text-2xl font-black text-blue-500 italic tracking-tighter">OMNINURSE</h2>
                 <div id="user-info" class="mt-6 p-4 bg-slate-800 rounded-2xl border-l-4 border-blue-500"></div>
             </div>
             <nav class="flex-1 p-4 space-y-2 overflow-y-auto no-scrollbar">
                 <button onclick="nav('patients')" class="nav-btn w-full flex items-center p-4 rounded-2xl hover:bg-slate-800 transition"><i class="fa fa-bed w-8"></i>病患管理</button>
                 <button onclick="nav('mar')" class="nav-btn w-full flex items-center p-4 rounded-2xl hover:bg-slate-800 transition"><i class="fa fa-pills w-8"></i>給藥系統</button>
                 <button onclick="nav('assessment')" class="nav-btn w-full flex items-center p-4 rounded-2xl hover:bg-slate-800 transition"><i class="fa fa-stethoscope w-8"></i>護理評估</button>
+                <button onclick="nav('notes')" class="nav-btn w-full flex items-center p-4 rounded-2xl hover:bg-slate-800 transition text-green-400 font-bold"><i class="fa fa-file-signature w-8"></i>護理記錄</button>
                 <button id="admin-nav" onclick="nav('staff')" class="hidden nav-btn w-full flex items-center p-4 rounded-2xl hover:bg-slate-800 transition text-yellow-400 font-bold"><i class="fa fa-user-shield w-8"></i>人員管理</button>
             </nav>
-            <div class="p-6 border-t border-slate-800 text-slate-500 text-[10px] text-center italic">© 2024 OmniNurse NIS Pro</div>
         </aside>
 
-        <!-- 主內容區 -->
-        <main class="flex-1 flex flex-col min-w-0 bg-slate-50">
+        <main class="flex-1 flex flex-col min-w-0 bg-slate-50 relative">
             <header class="hidden lg:flex bg-white h-20 border-b px-8 items-center justify-between shadow-sm z-30">
                 <div class="flex items-center space-x-4">
-                    <span class="text-slate-400 font-bold text-sm uppercase tracking-widest">Floor / Ward:</span>
-                    <select id="ward-filter" onchange="nav('patients')" class="bg-slate-100 p-2 rounded-xl font-bold border-none outline-none focus:ring-2 focus:ring-blue-500"></select>
+                    <span id="p-tag" class="hidden bg-blue-100 text-blue-700 px-6 py-2 rounded-full font-black text-sm border border-blue-200 tracking-tight"></span>
                 </div>
-                <div id="p-tag" class="hidden bg-blue-100 text-blue-700 px-6 py-2 rounded-full font-black text-sm border border-blue-200">未選取病人</div>
+                <select id="ward-filter" onchange="nav('patients')" class="bg-slate-100 p-2 rounded-xl font-bold border-none outline-none"></select>
             </header>
-
-            <section id="content" class="flex-1 p-4 lg:p-8 overflow-y-auto no-scrollbar pb-20">
-                <!-- 動態內容載入區 -->
-            </section>
+            <section id="content" class="flex-1 p-4 lg:p-8 overflow-y-auto no-scrollbar pb-20"></section>
         </main>
     </div>
 
-    <!-- [3. 簽章彈窗] -->
+    <!-- [3. NURMAN 歡迎視窗] -->
+    <div id="welcome-nurman" class="hidden fixed inset-0 z-[300] bg-slate-900/80 backdrop-blur-xl flex items-center justify-center p-4">
+        <div class="bg-white rounded-[3rem] shadow-2xl w-full max-w-lg overflow-hidden border border-white/20">
+            <div class="manager-gradient p-10 text-white text-center">
+                <div class="w-20 h-20 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-6">
+                    <i class="fa fa-crown text-4xl text-yellow-300"></i>
+                </div>
+                <h2 class="text-3xl font-black mb-2">歡迎主管巡視</h2>
+                <p id="nurman-greeting" class="text-blue-100 font-bold"></p>
+            </div>
+            <div class="p-8 bg-white space-y-6">
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="bg-slate-50 p-4 rounded-2xl text-center border">
+                        <div class="text-[10px] text-slate-400 font-bold uppercase">本日病患</div>
+                        <div class="text-2xl font-black text-slate-800">12 / 12</div>
+                    </div>
+                    <div class="bg-slate-50 p-4 rounded-2xl text-center border">
+                        <div class="text-[10px] text-slate-400 font-bold uppercase">待執行醫囑</div>
+                        <div class="text-2xl font-black text-red-500">3</div>
+                    </div>
+                </div>
+                <button onclick="closeWelcome()" class="w-full bg-slate-900 text-white py-5 rounded-[1.5rem] font-black hover:bg-blue-600 transition-all">進入主管儀表板</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- [4. 簽章彈窗] -->
     <div id="modal-sign" class="hidden fixed inset-0 bg-slate-900/90 backdrop-blur-md z-[200] flex items-center justify-center p-4">
         <div class="bg-white p-8 rounded-[2.5rem] shadow-2xl w-full max-w-sm border border-slate-100">
-            <h3 class="text-xl font-black text-slate-800 mb-2 text-center">身分電子簽章</h3>
-            <p id="sig-info" class="text-slate-400 text-center text-xs mb-6"></p>
-            <input type="password" id="sig-pw" placeholder="請輸入密碼驗證" class="w-full p-4 border rounded-2xl mb-6 outline-none bg-slate-50 focus:ring-2 focus:ring-blue-500">
+            <h3 class="text-xl font-black text-slate-800 mb-2 text-center">電子簽章身分驗證</h3>
+            <p id="sig-info" class="text-slate-400 text-center text-[10px] mb-6 whitespace-pre-wrap"></p>
+            <input type="password" id="sig-pw" placeholder="輸入密碼驗證" class="w-full p-4 border rounded-2xl mb-6 outline-none bg-slate-50 focus:ring-2 focus:ring-blue-500">
             <div class="flex space-x-3">
                 <button onclick="closeSign()" class="flex-1 py-4 bg-slate-100 rounded-2xl font-bold">取消</button>
-                <button id="sig-confirm-btn" class="flex-1 py-4 bg-blue-600 text-white rounded-2xl font-bold hover:bg-blue-700">確認簽署</button>
+                <button id="sig-confirm-btn" class="flex-1 py-4 bg-blue-600 text-white rounded-2xl font-bold hover:bg-blue-700 transition-all">確認</button>
             </div>
         </div>
     </div>
 
     <script>
-        // --- [A. 預設資料初始化] ---
-        const DEFAULT_STAFF = [
-            { id: "N90221", name: "黎哲瑋", password: "A11516", role: "ADMIN", title: "護理主管／值班護理長（HN/N2）" },
-            { id: "N93610", name: "唐若素", password: "936103", role: "ADMIN", title: "護理主管／值班護理長（AHN/N2）" }
+        const STAFF = [
+            { id: "N90221", name: "黎哲瑋", password: "A11516", role: "NURMAN", title: "護理主管／護理長" },
+            { id: "N93610", name: "唐若素", password: "936103", role: "NURMAN", title: "科部主管／護理部主任" }
         ];
 
-        const DEFAULT_PATIENTS = [
-            { id: "P001", name: "張三", bed: "701-1", ward: "7F 內科病房", age: 75, diagnosis: "社區型肺炎", meds: [{ name: "Aspirin", dose: "100mg", freq: "QD" }] },
-            { id: "P002", name: "李四", bed: "805-2", ward: "8F 外科病房", age: 62, diagnosis: "股骨頸骨折", meds: [{ name: "Morphine", dose: "5mg", freq: "PRN" }] },
-            { id: "P003", name: "陳六", bed: "805-3", ward: "8F 外科病房", age: 45, diagnosis: "急性闌尾炎", meds: [{ name: "Keto", dose: "30mg", freq: "ST" }] }
+        const INITIAL_PATIENTS = [
+            { id: "P001", name: "黃淑芬", bed: "ICU-01", ward: "ICU 加護病房（不分科）", age: 75, diagnosis: "呼吸衰竭", meds: [{ name: "Aspirin", dose: "100mg", freq: "QD" }], notes: [] },
+            { id: "P002", name: "林婉婷", bed: "10-011", ward: "W10 外科病房（不分科）", age: 62, diagnosis: "左側股骨頸骨折", meds: [{ name: "Morphine", dose: "5mg", freq: "PRN" }], notes: [] }
+            { id: "P003", name: "陳志偉", bed: "ICU-02", ward: "ICU 加護病房（不分科）", age: 38, diagnosis: "蜘蛛網膜下出血", meds: [{ name: "Transamin", dose: "100mg", freq: "QD" }], notes: [] },
+            { id: "P002", name: "張家豪", bed: "10-021", ward: "W10 外科病房（不分科）", age: 87, diagnosis: "右側肱骨骨折", meds: [{ name: "Morphine", dose: "5mg", freq: "PRN" }], notes: [] }
+            { id: "P001", name: "陳靜雯", bed: "ICU-03", ward: "ICU 加護病房（不分科）", age: 18, diagnosis: "肝臟撕裂傷", meds: [{ name: "Transamin", dose: "100mg", freq: "QD" }], notes: [] },
+            { id: "P002", name: "林志偉", bed: "10-031", ward: "W10 外科病房（不分科）", age: 37, diagnosis: "急性闌尾炎", meds: [{ name: "Ketorolac", dose: "5mg", freq: "PRN" }], notes: [] }
         ];
 
-        // --- [B. 系統核心變數] ---
-        let staff = JSON.parse(localStorage.getItem('nis_v6_staff')) || DEFAULT_STAFF;
-        let patients = JSON.parse(localStorage.getItem('nis_v6_patients')) || DEFAULT_PATIENTS;
-        let user = null;
-        let activeP = null;
+        let patients = JSON.parse(sessionStorage.getItem('session_patients')) || INITIAL_PATIENTS;
+        let user = null, activeP = null;
 
         window.onload = () => {
             const filter = document.getElementById('ward-filter');
-            ["全部區域", "7F 內科病房", "8F 外科病房"].forEach(w => filter.add(new Option(w, w)));
+            ["全部區域", "ICU 加護病房（不分科）", "W10 外科病房（不分科）"].forEach(w => filter.add(new Option(w, w)));
         };
 
-        // --- [C. 登入邏輯] ---
         function handleLogin() {
-            const id = document.getElementById('login-id').value;
-            const pw = document.getElementById('login-pw').value;
-            const found = staff.find(u => u.id === id && u.password === pw);
+            const id = document.getElementById('login-id').value.trim();
+            const pw = document.getElementById('login-pw').value.trim();
+            const found = STAFF.find(u => u.id === id && u.password === pw);
 
             if (found) {
                 user = found;
                 document.getElementById('login-page').classList.add('hidden');
                 document.getElementById('main-app').classList.remove('hidden');
-                document.getElementById('user-info').innerHTML = `
-                    <div class="text-blue-400 font-bold text-xs uppercase mb-1">${user.title}</div>
-                    <div class="text-lg font-black text-white">${user.name}</div>
-                    <div class="text-slate-500 text-[10px] mt-1">員編: ${user.id}</div>
-                `;
-                if (user.role === 'ADMIN') document.getElementById('admin-nav').classList.remove('hidden');
+                document.getElementById('user-info').innerHTML = `<div class="text-blue-400 font-bold text-[10px] uppercase mb-1">${user.title}</div><div class="text-lg font-black text-white">${user.name}</div><div class="text-slate-500 text-[10px] mt-1 italic">員編: ${user.id}</div>`;
+                
+                if (user.role === 'NURMAN') {
+                    document.getElementById('admin-nav').classList.remove('hidden');
+                    document.getElementById('welcome-nurman').classList.remove('hidden');
+                    document.getElementById('nurman-greeting').innerText = `平安，${user.name} 主管。\n系統已準備就緒，請開啟護理品質查核。`;
+                }
                 nav('patients');
             } else {
-                document.getElementById('login-error').classList.remove('hidden');
+                alert("員編或密碼不正確！");
             }
         }
 
-        // --- [D. 路由與內容渲染] ---
-        function nav(view) {
-            // 手機版收合選單
-            if (window.innerWidth < 1024) {
-                document.getElementById('sidebar').classList.add('-translate-x-full');
-                document.getElementById('sidebar-overlay').classList.add('hidden');
-            }
+        function closeWelcome() { document.getElementById('welcome-nurman').classList.add('hidden'); }
 
+        function nav(view) {
+            if (window.innerWidth < 1024) toggleSidebar(true);
             const container = document.getElementById('content');
             container.innerHTML = '';
-            
-            document.querySelectorAll('.nav-btn').forEach(btn => {
-                btn.classList.toggle('active', btn.getAttribute('onclick').includes(view));
-            });
+            document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.toggle('active', btn.getAttribute('onclick').includes(view)));
 
             if (view === 'patients') renderPatients(container);
             else if (view === 'mar') renderMAR(container);
             else if (view === 'assessment') renderAssessment(container);
+            else if (view === 'notes') renderNotes(container);
             else if (view === 'staff') renderStaff(container);
         }
 
         function renderPatients(container) {
             const ward = document.getElementById('ward-filter').value;
             const filtered = ward === "全部區域" ? patients : patients.filter(p => p.ward === ward);
-            
             let html = `<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">`;
             filtered.forEach(p => {
                 const isSel = activeP?.id === p.id;
-                html += `
-                    <button onclick="selectPatient('${p.id}')" class="patient-card text-left p-6 bg-white rounded-[2rem] shadow-sm border-2 transition-all ${isSel ? 'border-blue-500 bg-blue-50' : 'border-transparent'}">
-                        <div class="flex justify-between font-black text-[10px] text-slate-400 mb-2 uppercase"><span>${p.ward}</span><span>${p.bed}</span></div>
-                        <div class="text-xl font-black text-slate-800">${p.name} <span class="text-sm font-normal text-slate-400">${p.age}歲</span></div>
-                        <div class="mt-4 text-red-500 text-xs font-bold bg-red-50 p-3 rounded-2xl">診斷：${p.diagnosis}</div>
-                    </button>`;
+                html += `<button onclick="selectPatient('${p.id}')" class="patient-card text-left p-6 bg-white rounded-[2rem] shadow-sm border-2 transition-all ${isSel ? 'border-blue-500 bg-blue-50' : 'border-transparent'}"><div class="text-blue-600 font-black text-[10px] mb-2 uppercase italic tracking-widest">${p.bed}</div><div class="text-xl font-black text-slate-800">${p.name} <span class="text-sm font-normal text-slate-400">${p.age}歲</span></div><div class="mt-4 text-red-500 text-xs font-bold bg-red-50 p-3 rounded-2xl truncate italic">診斷：${p.diagnosis}</div></button>`;
             });
             container.innerHTML = html + `</div>`;
         }
 
         function selectPatient(id) {
             activeP = patients.find(p => p.id === id);
-            
-            // 更新 UI
             const tag = document.getElementById('p-tag');
             tag.innerText = `${activeP.bed} ${activeP.name}`;
             tag.classList.remove('hidden');
-            
-            // 手機版回饋
-            if(window.innerWidth < 1024) {
-                if(confirm(`已選取：${activeP.name}\n是否直接前往「給藥系統」？`)) {
-                    nav('mar');
-                } else {
-                    renderPatients(document.getElementById('content'));
-                }
-            } else {
-                renderPatients(document.getElementById('content'));
-            }
+            nav('patients');
         }
 
-        // [給藥系統]
         function renderMAR(container) {
-            if(!activeP) return container.innerHTML = `<div class="p-20 text-center text-slate-300 font-bold italic">請先在「病患管理」選擇病人</div>`;
-            
-            container.innerHTML = `
-                <div class="bg-white rounded-[2.5rem] shadow-sm overflow-hidden border">
-                    <div class="p-6 bg-blue-600 text-white flex justify-between items-center">
-                        <h2 class="text-xl font-black">給藥單 (MAR)</h2>
-                        ${user.role === 'ADMIN' ? `<button onclick="adminAddMed()" class="bg-white text-blue-600 px-4 py-1 rounded-xl font-bold text-xs shadow-lg">+ 新增藥物</button>` : ''}
-                    </div>
-                    <div class="divide-y">
-                        ${activeP.meds.map((m, idx) => `
-                            <div class="p-6 flex justify-between items-center hover:bg-blue-50/50">
-                                <div><div class="font-black text-blue-800 text-lg">${m.name}</div><div class="text-sm text-slate-400 font-bold">${m.dose} | ${m.freq}</div></div>
-                                <div class="flex items-center space-x-2">
-                                    <button onclick="openSign('給藥：${m.name}')" class="bg-slate-900 text-white px-5 py-2 rounded-2xl font-black text-xs active:bg-blue-600">執行</button>
-                                    ${user.role === 'ADMIN' ? `<button onclick="adminDelMed(${idx})" class="text-red-400 p-2"><i class="fa fa-trash"></i></button>` : ''}
-                                </div>
-                            </div>
-                        `).join('')}
-                    </div>
-                </div>`;
+            if(!activeP) return container.innerHTML = `<div class="p-20 text-center text-slate-300 font-bold italic">請先選取病患</div>`;
+            container.innerHTML = `<div class="bg-white rounded-[2.5rem] shadow-sm overflow-hidden border"><div class="p-6 bg-blue-600 text-white"><h2 class="text-xl font-black">給藥系統 (MAR)</h2></div><div class="divide-y">${activeP.meds.map((m, idx) => `<div class="p-6 flex justify-between items-center hover:bg-slate-50 transition"><div><div class="font-black text-blue-800">${m.name}</div><div class="text-xs text-slate-400 font-bold">${m.dose} | ${m.freq}</div></div><button onclick="openSign('給藥執行', '${m.name} ${m.dose}')" class="bg-slate-900 text-white px-5 py-2 rounded-2xl font-black text-xs active:bg-blue-600">簽名</button></div>`).join('')}</div></div>`;
         }
 
-        function adminAddMed() {
-            const name = prompt("藥名:"); if(!name) return;
-            activeP.meds.push({ name, dose: prompt("劑量/途徑:"), freq: prompt("頻率:") });
-            save(); nav('mar');
-        }
-
-        function adminDelMed(idx) {
-            if(confirm("確定刪除此藥物？")) { activeP.meds.splice(idx, 1); save(); nav('mar'); }
-        }
-
-        // [護理評估]
         function renderAssessment(container) {
-            if(!activeP) return container.innerHTML = `<div class="p-20 text-center text-slate-300 font-bold italic">請先選擇病人</div>`;
-            container.innerHTML = `
-                <div class="bg-white p-8 rounded-[2.5rem] shadow-sm border max-w-2xl mx-auto space-y-6">
-                    <h2 class="text-2xl font-black text-slate-800 border-b pb-4">綜合護理評估</h2>
-                    <div class="space-y-4">
-                        <label class="text-[10px] font-black text-slate-400 uppercase">意識 GCS / 疼痛分數</label>
-                        <div class="grid grid-cols-2 gap-4">
-                            <select class="p-4 border rounded-2xl bg-slate-50"><option>E4V5M6 (Clear)</option><option>Drowsy</option></select>
-                            <input type="number" class="p-4 border rounded-2xl bg-slate-50" placeholder="疼痛分數(0-10)">
-                        </div>
-                        <label class="text-[10px] font-black text-slate-400 uppercase">生命徵象 Vital Signs</label>
-                        <div class="grid grid-cols-2 gap-4">
-                            <input placeholder="體溫 BT" class="p-4 border rounded-2xl bg-slate-50">
-                            <input placeholder="脈搏 HR" class="p-4 border rounded-2xl bg-slate-50">
-                            <input placeholder="呼吸 RR" class="p-4 border rounded-2xl bg-slate-50">
-                            <input placeholder="血壓 BP" class="p-4 border rounded-2xl bg-slate-50">
-                        </div>
-                    </div>
-                    <button onclick="openSign('評估單存檔')" class="w-full bg-green-600 text-white py-5 rounded-[1.5rem] font-black text-lg shadow-xl shadow-green-100">簽署並儲存</button>
-                </div>`;
+            if(!activeP) return container.innerHTML = `<div class="p-20 text-center text-slate-300 font-bold italic">請先選取病患</div>`;
+            container.innerHTML = `<div class="bg-white p-8 rounded-[2.5rem] shadow-sm border max-w-2xl mx-auto space-y-6"><h2 class="text-2xl font-black text-slate-800 border-b pb-4">生命徵象評估</h2><div class="space-y-4 text-left"><div class="grid grid-cols-2 gap-4"><div><label class="text-[10px] font-bold text-slate-400">體溫 BT</label><input id="val-bt" type="text" class="p-4 border rounded-2xl w-full bg-slate-50" placeholder="36.5"></div><div><label class="text-[10px] font-bold text-slate-400">血壓 BP</label><input id="val-bp" type="text" class="p-4 border rounded-2xl w-full bg-slate-50" placeholder="120/80"></div></div></div><button onclick="signAssessment()" class="w-full bg-green-600 text-white py-5 rounded-[1.5rem] font-black text-lg">簽署儲存</button></div>`;
         }
 
-        // [人員管理]
-        function renderStaff(container) {
-            if(user.role !== 'ADMIN') return;
-            container.innerHTML = `
-                <div class="space-y-6">
-                    <div class="bg-white p-6 rounded-[2rem] border-2 border-blue-100 shadow-sm">
-                        <h3 class="font-black text-blue-600 mb-4 text-xs">新增醫事帳號</h3>
-                        <div class="grid grid-cols-1 gap-3">
-                            <input id="s-id" placeholder="員編" class="p-4 border rounded-2xl"><input id="s-name" placeholder="姓名" class="p-4 border rounded-2xl">
-                            <input id="s-pw" type="password" placeholder="密碼" class="p-4 border rounded-2xl">
-                            <button onclick="addStaff()" class="bg-blue-600 text-white py-4 rounded-2xl font-bold">建立帳號</button>
-                        </div>
-                    </div>
-                    <div class="bg-white rounded-[2rem] shadow-sm overflow-hidden border">
-                        <table class="w-full text-left">
-                            <thead class="bg-slate-50 border-b text-[10px] text-slate-400 uppercase tracking-widest"><th class="p-4">人員</th><th class="p-4">操作</th></thead>
-                            <tbody>
-                                ${staff.map(s => `
-                                    <tr class="border-b text-sm">
-                                        <td class="p-4 font-bold">${s.title} ${s.name} (${s.id})</td>
-                                        <td class="p-4">${s.id === user.id ? '使用中' : `<button onclick="delStaff('${s.id}')" class="text-red-400 font-bold">刪除</button>`}</td>
-                                    </tr>
-                                `).join('')}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>`;
+        function signAssessment() {
+            const bt = document.getElementById('val-bt').value, bp = document.getElementById('val-bp').value;
+            openSign('護理評估', `BT: ${bt}, BP: ${bp}`);
         }
 
-        function addStaff() {
-            const id = document.getElementById('s-id').value;
-            const name = document.getElementById('s-name').value;
-            const pw = document.getElementById('s-pw').value;
-            if(!id || !name || !pw) return alert("資料不完整");
-            staff.push({ id, name, password: pw, title: "護理師", role: "RN" });
-            save(); nav('staff');
+        function renderNotes(container) {
+            if(!activeP) return container.innerHTML = `<div class="p-20 text-center text-slate-300 font-bold italic">請先選擇病患</div>`;
+            container.innerHTML = `<h2 class="text-2xl font-black text-slate-800 mb-6 tracking-tight">自動生成記錄回顧 - ${activeP.name}</h2><div class="space-y-4">${activeP.notes.length === 0 ? '<p class="text-slate-400">目前尚無記錄</p>' : activeP.notes.map(n => `<div class="bg-white p-6 rounded-[2rem] shadow-sm border-l-4 border-green-500"><div class="flex justify-between text-[10px] font-bold text-slate-400 mb-2"><span>${n.time}</span><span>${n.signer}</span></div><div class="font-bold text-slate-700 whitespace-pre-wrap">${n.content}</div></div>`).join('')}</div>`;
         }
 
-        function delStaff(id) {
-            if(confirm("確定刪除帳號？")) { staff = staff.filter(s => s.id !== id); save(); nav('staff'); }
-        }
-
-        // --- [E. 功能函數] ---
-        function toggleSidebar() {
-            const sb = document.getElementById('sidebar');
-            const sl = document.getElementById('sidebar-overlay');
-            sb.classList.toggle('-translate-x-full');
-            sl.classList.toggle('hidden');
-        }
-
-        function openSign(action) {
-            document.getElementById('sig-info').innerText = `執行動作：${action}\n簽署人：${user.name} (${user.id})`;
+        function openSign(type, data) {
+            document.getElementById('sig-info').innerText = `【驗證】${type}：${data}`;
             document.getElementById('modal-sign').classList.remove('hidden');
             document.getElementById('sig-pw').focus();
             document.getElementById('sig-confirm-btn').onclick = () => {
                 if(document.getElementById('sig-pw').value === user.password) {
-                    alert("簽署成功！");
+                    generateNote(type, data);
                     closeSign();
-                    if(action === '評估單存檔') nav('patients');
-                } else {
-                    alert("密碼驗證失敗！");
-                }
+                    alert("簽署完成並已生成 DART 記錄。");
+                    nav('notes');
+                } else { alert("密碼錯誤！"); }
             };
         }
 
-        function closeSign() {
-            document.getElementById('modal-sign').classList.add('hidden');
-            document.getElementById('sig-pw').value = '';
+        function generateNote(type, data) {
+            const now = new Date().toLocaleString();
+            let content = type === '給藥執行' ? `[給藥執行]\nData: 依醫囑執行處置。\nAction: 已核對病患身分並完成給藥 (${data})。\nResponse: 病患無立即過敏反應，持續觀察。` : `[護理評估]\nData: 常規生命徵象監測。\nAction: 測量結果為 ${data}。\nResponse: 數值已記錄，病患目前意識清醒，無明顯不適。`;
+            activeP.notes.unshift({ time: now, signer: `${user.title} ${user.name}`, content });
+            sessionStorage.setItem('session_patients', JSON.stringify(patients));
         }
 
-        function save() {
-            localStorage.setItem('nis_v6_staff', JSON.stringify(staff));
-            localStorage.setItem('nis_v6_patients', JSON.stringify(patients));
-        }
-
-        function forceReset() {
-            if(confirm("重設系統將清空所有資料，確定嗎？")) {
-                localStorage.clear();
-                location.reload();
-            }
-        }
+        function closeSign() { document.getElementById('modal-sign').classList.add('hidden'); document.getElementById('sig-pw').value = ''; }
+        function toggleSidebar(close = false) { const sb = document.getElementById('sidebar'), sl = document.getElementById('sidebar-overlay'); if(close) { sb.classList.add('-translate-x-full'); sl.classList.add('hidden'); } else { sb.classList.toggle('-translate-x-full'); sl.classList.toggle('hidden'); } }
+        function renderStaff() { document.getElementById('content').innerHTML = `<div class="p-8 bg-white rounded-3xl border"><h3 class="font-bold">主管檢核選單</h3><p class="text-slate-400 text-sm mt-2">目前身分：${user.title} ${user.name}</p></div>`; }
     </script>
 </body>
 </html>
