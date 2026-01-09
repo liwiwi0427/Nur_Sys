@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OmniNurse | 智慧護理資訊系統</title>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&display=swap');
+        body { font-family: 'Noto Sans TC', sans-serif; background-color: #f3f4f6; }
+        .sig-canvas { border: 2px dashed #ccc; cursor: crosshair; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        // --- 模擬資料庫控制 ---
+        const storage = {
+            save: (key, data) => localStorage.setItem(`nurse_sys_${key}`, JSON.stringify(data)),
+            get: (key) => JSON.parse(localStorage.getItem(`nurse_sys_${key}`))
+        };
+
+        // --- 組件：電子簽名板 ---
+        const SignaturePad = ({ onSave, onCancel }) => {
+            const canvasRef = useRef(null);
+            const [isDrawing, setIsDrawing] = useState(false);
+
+            useEffect(() => {
+                const canvas = canvasRef.current;
+                const ctx = canvas.getContext('2d');
+                ctx.lineWidth = 3;
+                ctx.lineCap = 'round';
+                ctx.strokeStyle = '#000';
+            }, []);
+
+            const startDrawing = (e) => {
+                const { offsetX, offsetY } = e.nativeEvent;
+                const ctx = canvasRef.current.getContext('2d');
+                ctx.beginPath();
+                ctx.moveTo(offsetX, offsetY);
+                setIsDrawing(true);
+            };
+
+            const draw = (e) => {
+                if (!isDrawing) return;
+                const { offsetX, offsetY } = e.nativeEvent;
+                const ctx = canvasRef.current.getContext('2d');
+                ctx.lineTo(offsetX, offsetY);
+                ctx.stroke();
+            };
+
+            const clear = () => {
+                const canvas = canvasRef.current;
+                canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
+            };
+
+            return (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                    <div className="bg-white p-6 rounded-lg shadow-xl">
+                        <h3 className="text-lg font-bold mb-4">職類人員電子簽章</h3>
+                        <canvas 
+                            ref={canvasRef} 
+                            width={400} height={200} 
+                            className="sig-canvas bg-gray-50"
+                            onMouseDown={startDrawing}
+                            onMouseMove={draw}
+                            onMouseUp={() => setIsDrawing(false)}
+                        />
+                        <div className="flex justify-end mt-4 space-x-2">
+                            <button onClick={clear} className="px-4 py-2 border rounded">清除</button>
+                            <button onClick={onCancel} className="px-4 py-2 bg-gray-200 rounded">取消</button>
+                            <button onClick={() => onSave(canvasRef.current.toDataURL())} className="px-4 py-2 bg-blue-600 text-white rounded">確認簽署</button>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // --- 主程式 ---
+        const App = () => {
+            const [user, setUser] = useState(null);
+            const [view, setView] = useState('dashboard');
+            const [showSig, setShowSig] = useState(false);
+            const [records, setRecords] = useState(storage.get('records') || []);
+            const [activePatient] = useState({ name: "張本山", id: "A123456789", bed: "702-1", age: "68" });
+
+            // 登入邏輯
+            const handleLogin = (e) => {
+                e.preventDefault();
+                const userData = { name: "陳小芬", role: "RN 護理師", id: "N9982" };
+                setUser(userData);
+            };
+
+            // 儲存記錄
+            const addRecord = (type, data) => {
+                const newRecord = { 
+                    id: Date.now(), 
+                    type, 
+                    data, 
+                    time: new Date().toLocaleString(),
+                    nurse: user.name 
+                };
+                const updated = [newRecord, ...records];
+                setRecords(updated);
+                storage.save('records', updated);
+                setView('dashboard');
+                alert("記錄已加密存檔");
+            };
+
+            if (!user) return (
+                <div className="h-screen flex items-center justify-center bg-gradient-to-br from-blue-500 to-indigo-700">
+                    <form onSubmit={handleLogin} className="bg-white p-10 rounded-2xl shadow-2xl w-96">
+                        <div className="text-center mb-8">
+                            <i className="fa-solid fa-hospital-user text-5xl text-blue-600 mb-4"></i>
+                            <h1 className="text-2xl font-bold text-gray-800">OmniNurse NIS</h1>
+                            <p className="text-gray-500">智慧護理資訊系統</p>
+                        </div>
+                        <input type="text" placeholder="員工編號" className="w-full border p-3 rounded-lg mb-4 outline-blue-500" required />
+                        <input type="password" placeholder="密碼" className="w-full border p-3 rounded-lg mb-6 outline-blue-500" required />
+                        <button className="w-full bg-blue-600 text-white py-3 rounded-lg font-bold hover:bg-blue-700 transition">登入</button>
+                    </form>
+                </div>
+            );
+
+            return (
+                <div className="flex h-screen overflow-hidden">
+                    {/* 側邊欄 */}
+                    <aside className="w-64 bg-slate-800 text-white flex flex-col">
+                        <div className="p-6 text-xl font-bold border-b border-slate-700">OmniNurse</div>
+                        <nav className="flex-1 p-4 space-y-2">
+                            <button onClick={() => setView('dashboard')} className={`w-full text-left p-3 rounded ${view === 'dashboard' ? 'bg-blue-600' : 'hover:bg-slate-700'}`}>
+                                <i className="fa-solid fa-chart-line mr-2"></i> 護理儀表板
+                            </button>
+                            <button onClick={() => setView('mar')} className={`w-full text-left p-3 rounded ${view === 'mar' ? 'bg-blue-600' : 'hover:bg-slate-700'}`}>
+                                <i className="fa-solid fa-pills mr-2"></i> 給藥系統 (MAR)
+                            </button>
+                            <button onClick={() => setView('assessment')} className={`w-full text-left p-3 rounded ${view === 'assessment' ? 'bg-blue-600' : 'hover:bg-slate-700'}`}>
+                                <i className="fa-solid fa-stethoscope mr-2"></i> 護理評估
+                            </button>
+                            <button onClick={() => setView('notes')} className={`w-full text-left p-3 rounded ${view === 'notes' ? 'bg-blue-600' : 'hover:bg-slate-700'}`}>
+                                <i className="fa-solid fa-file-medical mr-2"></i> 護理紀錄
+                            </button>
+                        </nav>
+                        <div className="p-4 border-t border-slate-700 text-sm">
+                            <div>{user.name} ({user.id})</div>
+                            <button onClick={() => setUser(null)} className="text-red-400 mt-2 hover:underline">登出系統</button>
+                        </div>
+                    </aside>
+
+                    {/* 主內容區 */}
+                    <main className="flex-1 overflow-y-auto bg-gray-50">
+                        <header className="bg-white shadow-sm p-4 flex justify-between items-center sticky top-0 z-10">
+                            <div className="flex items-center space-x-4">
+                                <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full font-bold">{activePatient.bed}</span>
+                                <h2 className="text-lg font-bold">{activePatient.name} <span className="text-sm font-normal text-gray-500">({activePatient.age}歲 / {activePatient.id})</span></h2>
+                            </div>
+                            <div className="text-sm text-gray-500">系統狀態：連線中 (Local Mode)</div>
+                        </header>
+
+                        <div className="p-8">
+                            {view === 'dashboard' && (
+                                <div className="space-y-6">
+                                    <div className="grid grid-cols-3 gap-6">
+                                        <div className="bg-white p-6 rounded-xl shadow-sm border-l-4 border-blue-500">
+                                            <div className="text-gray-500 text-sm">待執行給藥</div>
+                                            <div className="text-3xl font-bold">4</div>
+                                        </div>
+                                        <div className="bg-white p-6 rounded-xl shadow-sm border-l-4 border-red-500">
+                                            <div className="text-gray-500 text-sm">異常生命徵象</div>
+                                            <div className="text-3xl font-bold">1</div>
+                                        </div>
+                                        <div className="bg-white p-6 rounded-xl shadow-sm border-l-4 border-green-500">
+                                            <div className="text-gray-500 text-sm">今日完成記錄</div>
+                                            <div className="text-3xl font-bold">{records.length}</div>
+                                        </div>
+                                    </div>
+                                    <div className="bg-white rounded-xl shadow-sm">
+                                        <div className="p-4 border-b font-bold">歷史動態回顧</div>
+                                        <div className="p-4">
+                                            {records.length === 0 ? "尚無紀錄" : records.map(r => (
+                                                <div key={r.id} className="mb-4 pb-4 border-b last:border-0">
+                                                    <div className="flex justify-between text-sm mb-1">
+                                                        <span className="font-bold text-blue-600">{r.type}</span>
+                                                        <span className="text-gray-400">{r.time}</span>
+                                                    </div>
+                                                    <div className="text-gray-700">{JSON.stringify(r.data)}</div>
+                                                    <div className="text-xs text-gray-400 mt-1">執行人：{r.nurse}</div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {view === 'mar' && (
+                                <div className="bg-white rounded-xl shadow-md p-6">
+                                    <h3 className="text-xl font-bold mb-6 flex items-center">
+                                        <i className="fa-solid fa-barcode mr-2"></i> 三讀五對給藥清單
+                                    </h3>
+                                    <div className="space-y-4">
+                                        {[
+                                            { name: "Aspirin", dose: "100mg", route: "PO", freq: "QD", time: "09:00" },
+                                            { name: "Keto", dose: "1 amp", route: "IV St", freq: "ST", time: "10:30" }
+                                        ].map((med, idx) => (
+                                            <div key={idx} className="flex items-center justify-between border p-4 rounded-lg hover:bg-blue-50 transition">
+                                                <div>
+                                                    <div className="font-bold text-lg text-blue-700">{med.name}</div>
+                                                    <div className="text-sm text-gray-500">{med.dose} | {med.route} | {med.freq}</div>
+                                                </div>
+                                                <div className="text-right">
+                                                    <div className="text-sm font-bold text-gray-400 mb-2">應給藥時間：{med.time}</div>
+                                                    <button onClick={() => setShowSig(true)} className="bg-indigo-600 text-white px-4 py-2 rounded shadow hover:bg-indigo-700">執行簽署</button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {view === 'assessment' && (
+                                <div className="bg-white rounded-xl shadow-md p-6 max-w-2xl mx-auto">
+                                    <h3 className="text-xl font-bold mb-6">生命徵象評估表</h3>
+                                    <div className="grid grid-cols-2 gap-6">
+                                        <div className="col-span-1">
+                                            <label className="block text-sm font-medium text-gray-700">體溫 (°C)</label>
+                                            <input id="temp" type="number" step="0.1" className="mt-1 block w-full border rounded-md p-2" placeholder="36.5" />
+                                        </div>
+                                        <div className="col-span-1">
+                                            <label className="block text-sm font-medium text-gray-700">脈搏 (bpm)</label>
+                                            <input id="hr" type="number" className="mt-1 block w-full border rounded-md p-2" placeholder="72" />
+                                        </div>
+                                        <div className="col-span-1">
+                                            <label className="block text-sm font-medium text-gray-700">呼吸 (次/分)</label>
+                                            <input id="rr" type="number" className="mt-1 block w-full border rounded-md p-2" placeholder="18" />
+                                        </div>
+                                        <div className="col-span-1">
+                                            <label className="block text-sm font-medium text-gray-700">收縮壓 (mmHg)</label>
+                                            <input id="sbp" type="number" className="mt-1 block w-full border rounded-md p-2" placeholder="120" />
+                                        </div>
+                                    </div>
+                                    <button 
+                                        onClick={() => addRecord('生命徵象', { 
+                                            T: document.getElementById('temp').value, 
+                                            P: document.getElementById('hr').value, 
+                                            R: document.getElementById('rr').value, 
+                                            BP: document.getElementById('sbp').value 
+                                        })}
+                                        className="mt-8 w-full bg-green-600 text-white py-3 rounded-lg font-bold hover:bg-green-700"
+                                    >
+                                        儲存評估記錄
+                                    </button>
+                                </div>
+                            )}
+
+                            {view === 'notes' && (
+                                <div className="bg-white rounded-xl shadow-md p-6">
+                                    <h3 className="text-xl font-bold mb-4">護理記錄 (DART Focus Charting)</h3>
+                                    <div className="space-y-4">
+                                        <div>
+                                            <label className="block text-sm font-bold text-gray-600">Focus (焦點)</label>
+                                            <input id="f" type="text" className="w-full border p-2 mt-1 rounded" placeholder="例如：急性疼痛" />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-bold text-gray-600">Data (主客觀資料)</label>
+                                            <textarea id="d" className="w-full border p-2 mt-1 rounded h-24"></textarea>
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-bold text-gray-600">Action (護理措施)</label>
+                                            <textarea id="a" className="w-full border p-2 mt-1 rounded h-24"></textarea>
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-bold text-gray-600">Response (評值)</label>
+                                            <textarea id="r" className="w-full border p-2 mt-1 rounded h-24"></textarea>
+                                        </div>
+                                        <button 
+                                            onClick={() => addRecord('護理記錄', { focus: document.getElementById('f').value })}
+                                            className="w-full bg-blue-600 text-white py-3 rounded-lg font-bold"
+                                        >
+                                            送出並進行電子簽章
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </main>
+
+                    {/* 簽名板彈窗 */}
+                    {showSig && (
+                        <SignaturePad 
+                            onCancel={() => setShowSig(false)} 
+                            onSave={(img) => {
+                                console.log("簽名已儲存:", img);
+                                setShowSig(false);
+                                addRecord('給藥簽章', '藥物已給予，簽章確認完成');
+                            }} 
+                        />
+                    )}
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
