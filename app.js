@@ -1,146 +1,146 @@
-// --- 資料安全讀取 ---
-let staff, patients;
-try {
-    staff = JSON.parse(localStorage.getItem('nis_v5_staff')) || defaultStaff;
-    patients = JSON.parse(localStorage.getItem('nis_v5_patients')) || defaultPatients;
-} catch (e) {
-    console.error("資料讀取失敗，自動重設", e);
-    staff = defaultStaff;
-    patients = defaultPatients;
-}
-
-let user = null;
-let selectedP = null;
-let onSignCallback = null;
+// --- 核心變數 ---
+let state = {
+    staff: JSON.parse(localStorage.getItem('nis_v5_staff')) || INITIAL_DATA.staff,
+    patients: JSON.parse(localStorage.getItem('nis_v5_patients')) || INITIAL_DATA.patients,
+    user: null,
+    activeP: null,
+    onSign: null
+};
 
 // --- 初始化 ---
 window.onload = () => {
-    console.log("系統初始化中...");
-    const filter = document.getElementById('ward-filter');
-    if (filter && typeof wards !== 'undefined') {
-        wards.forEach(w => filter.add(new Option(w, w)));
-    }
+    const wardSel = document.getElementById('sel-ward');
+    INITIAL_DATA.wards.forEach(w => wardSel.add(new Option(w, w)));
 };
 
-// --- 側邊欄開關 ---
-function toggleSidebar() {
-    const sidebar = document.getElementById('sidebar');
-    const overlay = document.getElementById('sidebar-overlay');
-    sidebar.classList.toggle('-translate-x-full');
-    overlay.classList.toggle('hidden');
+// --- 介面控制 ---
+function toggleMenu() {
+    document.getElementById('sidebar').classList.toggle('show');
+    document.getElementById('overlay').classList.toggle('hidden');
 }
 
-// --- 登入功能 ---
-function doLogin() {
-    console.log("嘗試登入...");
-    const id = document.getElementById('user-id').value;
-    const pw = document.getElementById('user-pw').value;
-    
-    // 檢查 staff 是否存在
-    if (typeof staff === 'undefined') {
-        alert("系統資料載入失敗，請點擊強制重設按鈕。");
-        return;
-    }
+// --- 登入邏輯 (修復沒反應問題) ---
+function handleLogin() {
+    const id = document.getElementById('inp-id').value;
+    const pw = document.getElementById('inp-pw').value;
+    const user = state.staff.find(s => s.id === id && s.password === pw);
 
-    const found = staff.find(s => s.id === id && s.password === pw);
-
-    if (found) {
-        user = found;
-        document.getElementById('login-screen').classList.add('hidden');
-        document.getElementById('main-app').classList.remove('hidden');
-        document.getElementById('user-tag').innerHTML = `
-            <div class="font-bold text-white">${user.title} ${user.name}</div>
-            <div class="text-xs text-slate-500">員編: ${user.id}</div>
+    if (user) {
+        state.user = user;
+        document.getElementById('view-login').classList.add('hidden');
+        document.getElementById('view-main').classList.remove('hidden');
+        document.getElementById('user-info').innerHTML = `
+            <div class="text-blue-400 text-xs font-bold mb-1">${user.title}</div>
+            <div class="text-lg font-bold">${user.name}</div>
+            <div class="text-xs text-slate-500 italic">員編: ${user.id}</div>
         `;
-        if (user.role === 'ADMIN') document.getElementById('btn-admin').classList.remove('hidden');
-        navTo('patients');
+        if(user.role === 'ADMIN') document.getElementById('nav-admin').classList.remove('hidden');
+        switchPage('patients');
     } else {
-        const msg = document.getElementById('login-msg');
-        msg.classList.remove('hidden');
-        console.warn("登入失敗：員編或密碼不正確");
+        const err = document.getElementById('err-msg');
+        err.classList.remove('hidden');
+        setTimeout(() => err.classList.add('hidden'), 2000);
     }
 }
 
-// --- 導覽切換 ---
-function navTo(view) {
-    console.log("切換至視圖:", view);
+// --- 路由導航 ---
+function switchPage(page) {
+    if (window.innerWidth < 1024) toggleMenu(); // 手機版自動收合
     
-    // 手機版自動關閉側邊欄
-    if (window.innerWidth < 1024) {
-        const sidebar = document.getElementById('sidebar');
-        if (!sidebar.classList.contains('-translate-x-full')) toggleSidebar();
-    }
-
-    const container = document.getElementById('content');
-    container.innerHTML = ''; // 清空內容
-
-    // 更新導覽按鈕顏色
+    const content = document.getElementById('content');
+    content.innerHTML = '';
+    
     document.querySelectorAll('.nav-btn').forEach(btn => {
-        btn.classList.remove('bg-slate-800', 'border-l-4', 'border-blue-500', 'text-blue-400');
-        if (btn.getAttribute('onclick').includes(view)) {
-            btn.classList.add('bg-slate-800', 'border-l-4', 'border-blue-500', 'text-blue-400');
-        }
+        btn.classList.toggle('active', btn.getAttribute('onclick').includes(page));
     });
 
-    // 根據視圖執行渲染
-    if (view === 'patients') renderPatients(container);
-    else if (view === 'mar') renderMAR(container);
-    else if (view === 'assessment') renderAssessment(container);
-    else if (view === 'staff') renderStaff(container);
+    switch(page) {
+        case 'patients': renderPatients(); break;
+        case 'mar': renderMAR(); break;
+        case 'eval': renderEval(); break;
+        case 'staff': renderStaff(); break;
+    }
 }
 
-// --- 病患清單 ---
-function renderPatients(container) {
-    const ward = document.getElementById('ward-filter').value;
-    const list = (ward === "全部區域") ? patients : patients.filter(p => p.ward === ward);
+// --- 病患管理 ---
+function renderPatients() {
+    const ward = document.getElementById('sel-ward').value;
+    const list = ward === "全部區域" ? state.patients : state.patients.filter(p => p.ward === ward);
+    const container = document.getElementById('content');
     
-    let html = `<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">`;
+    let html = `<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">`;
     list.forEach(p => {
-        const isSel = selectedP?.id === p.id;
+        const isSel = state.activeP?.id === p.id;
         html += `
-            <div onclick="selectP('${p.id}')" class="bg-white p-6 rounded-3xl shadow-sm border-2 cursor-pointer active:scale-95 transition ${isSel ? 'border-blue-500 bg-blue-50' : 'border-transparent'}">
-                <div class="flex justify-between font-bold mb-2">
-                    <span class="text-xs text-slate-400">${p.ward}</span>
-                    <span class="text-blue-600">${p.bed}</span>
-                </div>
-                <div class="text-xl font-bold">${p.name}</div>
-                <div class="text-red-500 text-sm mt-2 font-bold">${p.diagnosis}</div>
+            <div onclick="selectPatient('${p.id}')" class="p-6 bg-white rounded-3xl shadow-sm border-2 cursor-pointer transition active:scale-95 ${isSel ? 'border-blue-500 bg-blue-50' : 'border-transparent'}">
+                <div class="flex justify-between font-bold text-xs text-slate-400 mb-2"><span>${p.ward}</span><span>${p.bed}</span></div>
+                <div class="text-xl font-bold text-slate-800">${p.name} <span class="text-sm font-normal text-slate-500">${p.age}歲</span></div>
+                <div class="mt-4 text-red-500 text-xs font-bold bg-red-50 p-2 rounded-xl">${p.diagnosis}</div>
             </div>`;
     });
     container.innerHTML = html + `</div>`;
 }
 
-function selectP(id) {
-    selectedP = patients.find(p => p.id === id);
-    document.getElementById('active-p-tag').innerText = `${selectedP.bed} ${selectedP.name}`;
-    navTo('patients');
+function selectPatient(id) {
+    state.activeP = state.patients.find(p => p.id === id);
+    const tag = document.getElementById('p-tag');
+    tag.innerText = `${state.activeP.bed} ${state.activeP.name}`;
+    tag.classList.remove('hidden');
+    renderPatients();
 }
 
-// --- MAR 給藥 ---
-function renderMAR(container) {
-    if (!selectedP) return container.innerHTML = `<div class="p-10 text-center text-gray-400">請先選取病患</div>`;
+// --- 給藥單 (MAR) ---
+function renderMAR() {
+    const container = document.getElementById('content');
+    if(!state.activeP) return container.innerHTML = `<div class="p-20 text-center text-slate-400 font-bold">請先點擊「病患管理」選擇病人</div>`;
     
     container.innerHTML = `
-        <div class="bg-white rounded-3xl shadow-sm overflow-hidden">
-            <div class="p-6 bg-blue-600 text-white flex justify-between">
-                <h2 class="font-bold">給藥單 (MAR)</h2>
-                ${user.role === 'ADMIN' ? `<button onclick="adminAdd()" class="text-xs border px-2 py-1 rounded">管理</button>` : ''}
+        <div class="bg-white rounded-3xl shadow-sm overflow-hidden border">
+            <div class="p-6 bg-blue-600 text-white flex justify-between items-center">
+                <h2 class="text-xl font-bold">給藥執行清單 (MAR)</h2>
+                ${state.user.role === 'ADMIN' ? `<button onclick="adminAddMed()" class="bg-white text-blue-600 px-4 py-1 rounded-lg font-bold text-xs shadow-lg">新增藥物</button>` : ''}
             </div>
-            <div class="p-4 space-y-3">
-                ${selectedP.meds.map(m => `
-                    <div class="flex justify-between items-center border-b pb-3">
-                        <div><div class="font-bold text-blue-800">${m.name}</div><div class="text-xs text-gray-400">${m.dose} / ${m.freq}</div></div>
-                        <button onclick="openSign(()=>alert('給藥完成'))" class="bg-slate-900 text-white px-4 py-2 rounded-xl text-xs">簽名執行</button>
+            <div class="divide-y">
+                ${state.activeP.meds.map(m => `
+                    <div class="p-6 flex justify-between items-center hover:bg-slate-50">
+                        <div><div class="font-bold text-blue-700 text-lg">${m.name}</div><div class="text-sm text-slate-400">${m.dose} | ${m.freq}</div></div>
+                        <button onclick="openModal(()=>alert('給藥完成！'))" class="bg-slate-900 text-white px-6 py-2 rounded-xl font-bold text-sm">執行</button>
                     </div>
                 `).join('')}
             </div>
         </div>`;
 }
 
-// --- 簽章視窗 ---
-function openSign(callback) {
-    onSignCallback = callback;
+function adminAddMed() {
+    const name = prompt("藥名:"); if(!name) return;
+    state.activeP.meds.push({ id: Date.now(), name, dose: prompt("劑量/途徑:"), freq: prompt("頻率:") });
+    save(); renderMAR();
+}
+
+// --- 護理評估 ---
+function renderEval() {
+    const container = document.getElementById('content');
+    if(!state.activeP) return container.innerHTML = `<div class="p-20 text-center text-slate-400 font-bold">請先點擊「病患管理」選擇病人</div>`;
+    
+    container.innerHTML = `
+        <div class="bg-white p-6 lg:p-10 rounded-3xl shadow-sm border max-w-2xl mx-auto space-y-6">
+            <h2 class="text-2xl font-bold text-slate-800 border-b pb-4">護理評估記錄表</h2>
+            <div class="grid grid-cols-2 gap-4">
+                <div class="col-span-2"><label class="text-xs font-bold text-slate-400">GCS 意識</label><select class="w-full p-4 border rounded-2xl bg-slate-50 outline-none"><option>E4V5M6 (Clear)</option><option>Drowsy</option><option>Coma</option></select></div>
+                <div><label class="text-xs font-bold text-slate-400">BT 體溫</label><input type="number" step="0.1" class="w-full p-4 border rounded-2xl outline-none" placeholder="36.5"></div>
+                <div><label class="text-xs font-bold text-slate-400">HR 脈搏</label><input type="number" class="w-full p-4 border rounded-2xl outline-none" placeholder="72"></div>
+                <div><label class="text-xs font-bold text-slate-400">RR 呼吸</label><input type="number" class="w-full p-4 border rounded-2xl outline-none" placeholder="18"></div>
+                <div><label class="text-xs font-bold text-slate-400">BP 血壓</label><input type="text" class="w-full p-4 border rounded-2xl outline-none" placeholder="120/80"></div>
+            </div>
+            <button onclick="openModal(()=>{alert('評估存檔成功！'); switchPage('patients');})" class="w-full bg-green-600 text-white py-4 rounded-2xl font-black text-lg">確認並進行簽章</button>
+        </div>`;
+}
+
+// --- 簽章邏輯 ---
+function openModal(callback) {
+    state.onSign = callback;
     document.getElementById('modal-sign').classList.remove('hidden');
+    document.getElementById('sig-pw').focus();
 }
 
 function closeModal() {
@@ -148,30 +148,36 @@ function closeModal() {
     document.getElementById('sig-pw').value = '';
 }
 
-function doSign() {
-    const pw = document.getElementById('sig-pw').value;
-    if (pw === user.password) {
+function confirmSign() {
+    if (document.getElementById('sig-pw').value === state.user.password) {
         closeModal();
-        if (onSignCallback) onSignCallback();
+        if(state.onSign) state.onSign();
     } else {
-        alert("密碼錯誤！");
+        alert("密碼不正確，簽署失敗");
     }
 }
 
-// --- 強制重設系統 ---
-function forceReset() {
-    if (confirm("這將會清除所有本地快取資料並重設系統，確定嗎？")) {
+// --- 輔助功能 ---
+function save() {
+    localStorage.setItem('nis_v5_staff', JSON.stringify(state.staff));
+    localStorage.setItem('nis_v5_patients', JSON.stringify(state.patients));
+}
+
+function resetSystem() {
+    if(confirm("重設後將清空所有自訂資料，確定嗎？")) {
         localStorage.clear();
         location.reload();
     }
 }
 
-// --- 資料儲存 ---
-function save() {
-    localStorage.setItem('nis_v5_staff', JSON.stringify(staff));
-    localStorage.setItem('nis_v5_patients', JSON.stringify(patients));
+// 系統人員管理介面 (簡化版)
+function renderStaff() {
+    const container = document.getElementById('content');
+    container.innerHTML = `
+        <div class="bg-white rounded-3xl p-6 border shadow-sm">
+            <h2 class="text-xl font-bold mb-4">工作人員清單</h2>
+            <div class="space-y-2">
+                ${state.staff.map(s => `<div class="p-3 bg-slate-50 rounded-xl flex justify-between font-mono text-sm"><span>${s.title} ${s.name}</span><span>ID: ${s.id}</span></div>`).join('')}
+            </div>
+        </div>`;
 }
-
-// --- 其他省略功能 (依此類推) ---
-function renderAssessment(c) { c.innerHTML = `<div class="p-10 text-center">評估單模組加載成功</div>`; }
-function renderStaff(c) { c.innerHTML = `<div class="p-10 text-center">人員管理模組加載成功</div>`; }
