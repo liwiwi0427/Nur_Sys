@@ -1,184 +1,221 @@
-let staff = JSON.parse(localStorage.getItem('staff')) || initialStaff;
-let patients = JSON.parse(localStorage.getItem('patients')) || initialPatients;
+let staff = JSON.parse(localStorage.getItem('nis_staff')) || initialStaff;
+let patients = JSON.parse(localStorage.getItem('nis_patients')) || initialPatients;
 let currentUser = null;
 let currentPatient = null;
-let currentWard = "全部區域";
+let currentView = 'patients';
 let pendingAction = null;
 
+// --- 初始化 ---
 document.addEventListener('DOMContentLoaded', () => {
-    initWardSelector();
-    setInterval(() => {
-        document.getElementById('current-time').innerText = new Date().toLocaleString();
-    }, 1000);
+    const ws = document.getElementById('ward-select');
+    wardList.forEach(w => ws.add(new Option(w, w)));
+    setInterval(() => document.getElementById('clock').innerText = new Date().toLocaleString(), 1000);
 });
 
-// --- 登入與使用者顯示 ---
+// --- 登入 ---
 function handleLogin() {
     const id = document.getElementById('login-id').value;
     const pw = document.getElementById('login-pw').value;
-    const user = staff.find(s => s.id === id && s.password === pw);
+    const user = staff.find(u => u.id === id && u.password === pw);
 
     if (user) {
         currentUser = user;
         document.getElementById('login-page').classList.add('hidden');
         document.getElementById('main-system').classList.remove('hidden');
-        
-        // 修改顯示格式：職稱 姓名 (員編)
-        document.getElementById('user-profile').innerHTML = `
-            <div class="font-bold text-base text-blue-300">${user.title}</div>
-            <div class="text-lg">${user.name}</div>
-            <div class="text-xs text-slate-400 mt-1 italic">員編：${user.id}</div>
-        `;
-        document.getElementById('sig-display-name').innerText = `${user.title} ${user.name} (${user.id})`;
-        
-        if (user.role === 'ADMIN') document.getElementById('admin-nav').classList.remove('hidden');
+        document.getElementById('user-display').innerHTML = `${user.title} ${user.name}<br><small>員編：${user.id}</small>`;
+        if (user.role === 'ADMIN') document.getElementById('admin-staff-btn').classList.remove('hidden');
         switchView('patients');
     } else {
         document.getElementById('login-error').classList.remove('hidden');
     }
 }
 
-// --- 病房篩選邏輯 ---
-function initWardSelector() {
-    const selector = document.getElementById('ward-selector');
-    wards.forEach(w => {
-        const opt = document.createElement('option');
-        opt.value = w;
-        opt.innerText = w;
-        selector.appendChild(opt);
-    });
-}
-
-function filterWard() {
-    currentWard = document.getElementById('ward-selector').value;
-    if (viewContext === 'patients') renderPatients(document.getElementById('content-area'));
-}
-
-let viewContext = 'patients';
+// --- 視圖控制 ---
 function switchView(view) {
-    viewContext = view;
+    currentView = view;
     const area = document.getElementById('content-area');
     area.innerHTML = '';
-    
     document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
 
     if (view === 'patients') renderPatients(area);
     else if (view === 'mar') renderMAR(area);
     else if (view === 'assessment') renderAssessment(area);
-    else if (view === 'staff') renderStaffManagement(area);
+    else if (view === 'staff') renderStaff(area);
+    else if (view === 'settings') renderSettings(area);
 }
 
-// --- 病患顯示 ---
+// --- 病患清單 ---
 function renderPatients(container) {
-    // 根據選擇的病房過濾
-    const filtered = currentWard === "全部區域" ? patients : patients.filter(p => p.ward === currentWard);
-    
-    let html = `<div class="flex justify-between items-end mb-6">
-                    <h2 class="text-2xl font-bold text-slate-700">病患清單 <span class="text-sm font-normal text-gray-400">目前顯示：${currentWard}</span></h2>
-                </div>
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">`;
-    
+    const ward = document.getElementById('ward-select').value;
+    const filtered = ward === '全部區域' ? patients : patients.filter(p => p.ward === ward);
+    let html = `<div class="grid grid-cols-2 gap-6">`;
     filtered.forEach(p => {
-        const isSelected = currentPatient?.id === p.id;
         html += `
-            <div onclick="selectPatient('${p.id}')" class="patient-card bg-white p-6 rounded-2xl shadow-sm cursor-pointer border-2 ${isSelected ? 'border-blue-500 bg-blue-50' : 'border-transparent'}">
-                <div class="flex justify-between mb-4">
-                    <span class="bg-slate-100 px-3 py-1 rounded text-xs font-bold text-slate-500">${p.ward}</span>
-                    <span class="text-blue-600 font-bold">${p.bed}</span>
-                </div>
-                <div class="text-xl font-bold mb-1">${p.name}</div>
-                <div class="text-gray-500 text-sm mb-3">${p.id} | ${p.age}歲</div>
-                <div class="text-red-500 text-sm font-medium"><i class="fa fa-notes-medical mr-1"></i>${p.diagnosis}</div>
-            </div>`;
+        <div onclick="selectPatient('${p.id}')" class="bg-white p-6 rounded-2xl shadow-sm border-2 cursor-pointer ${currentPatient?.id === p.id ? 'border-blue-500 bg-blue-50' : 'border-transparent'}">
+            <div class="flex justify-between font-bold text-blue-600 mb-2"><span>${p.bed}</span><span>${p.ward}</span></div>
+            <div class="text-xl font-bold">${p.name} (${p.age}歲)</div>
+            <div class="text-red-500 text-sm mt-2">診斷：${p.diagnosis}</div>
+        </div>`;
     });
-    html += `</div>`;
-    container.innerHTML = html;
+    container.innerHTML = html + `</div>`;
 }
 
 function selectPatient(id) {
     currentPatient = patients.find(p => p.id === id);
-    document.getElementById('active-info').innerText = `${currentPatient.ward} | ${currentPatient.bed} | ${currentPatient.name}`;
-    renderPatients(document.getElementById('content-area'));
+    document.getElementById('active-patient-header').innerText = `${currentPatient.bed} ${currentPatient.name}`;
+    switchView('patients');
 }
 
-// --- 簽章邏輯 ---
-function openSignModal(action) {
-    if (!currentPatient) return alert("請先選取病患！");
+// --- 給藥系統 (含管理員調整功能) ---
+function renderMAR(container) {
+    if (!currentPatient) return container.innerHTML = "請先選擇病患";
+    
+    let html = `
+        <div class="bg-white rounded-2xl shadow-sm overflow-hidden">
+            <div class="p-6 bg-blue-600 text-white flex justify-between items-center">
+                <h2 class="text-xl font-bold">給藥執行清單 (MAR)</h2>
+                ${currentUser.role === 'ADMIN' ? `<button onclick="showAddMed()" class="bg-yellow-400 text-blue-900 px-4 py-1 rounded-lg font-bold text-sm">+ 管理藥單</button>` : ''}
+            </div>
+            <table class="w-full">
+                <thead class="bg-gray-50 border-b">
+                    <tr><th class="p-4">藥名</th><th class="p-4">劑量/途徑</th><th class="p-4">頻率</th><th class="p-4">操作</th></tr>
+                </thead>
+                <tbody>
+                    ${currentPatient.medications.map(m => `
+                        <tr class="border-b">
+                            <td class="p-4 font-bold text-blue-700">${m.name}</td>
+                            <td class="p-4">${m.dose} / ${m.route}</td>
+                            <td class="p-4">${m.freq}</td>
+                            <td class="p-4"><button onclick="signAction('給藥: ${m.name}')" class="bg-blue-600 text-white px-4 py-1 rounded">簽署給藥</button></td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+        </div>`;
+    container.innerHTML = html;
+}
+
+function showAddMed() {
+    const name = prompt("請輸入藥名:");
+    if (!name) return;
+    const dose = prompt("劑量/途徑 (例如: 10mg/PO):");
+    const freq = prompt("頻率 (例如: QD):");
+    currentPatient.medications.push({ id: Date.now(), name, dose, freq });
+    save();
+    switchView('mar');
+}
+
+// --- 強化護理評估 ---
+function renderAssessment(container) {
+    if (!currentPatient) return container.innerHTML = "請先選擇病患";
+    container.innerHTML = `
+        <div class="bg-white p-8 rounded-2xl shadow-sm max-w-2xl mx-auto space-y-6">
+            <h2 class="text-2xl font-bold border-b pb-2">綜合護理評估</h2>
+            <div class="grid grid-cols-2 gap-6">
+                <div><label class="block text-sm font-bold">意識狀態 (GCS)</label>
+                    <select class="w-full border p-2 rounded"><option>Clear (E4V5M6)</option><option>Drowsy</option><option>Coma</option></select>
+                </div>
+                <div><label class="block text-sm font-bold">疼痛評估 (0-10)</label>
+                    <input type="number" min="0" max="10" class="w-full border p-2 rounded" placeholder="分數">
+                </div>
+                <div><label class="block text-sm font-bold">跌倒風險 (Morse)</label>
+                    <select class="w-full border p-2 rounded"><option>低風險</option><option>中風險</option><option>高風險</option></select>
+                </div>
+                <div><label class="block text-sm font-bold">壓瘡評估 (Braden)</label>
+                    <input type="number" class="w-full border p-2 rounded" placeholder="總分">
+                </div>
+                <div class="col-span-2"><label class="block text-sm font-bold">生命徵象 (BT/HR/RR/BP)</label>
+                    <div class="flex space-x-2"><input placeholder="BT" class="w-1/4 border p-2 rounded"><input placeholder="HR" class="w-1/4 border p-2 rounded"><input placeholder="RR" class="w-1/4 border p-2 rounded"><input placeholder="BP" class="w-1/4 border p-2 rounded"></div>
+                </div>
+            </div>
+            <button onclick="signAction('護理評估存檔')" class="w-full bg-green-600 text-white py-3 rounded-xl font-bold">儲存評估並進行電子簽章</button>
+        </div>`;
+}
+
+// --- 人員管理 ---
+function renderStaff(container) {
+    if (currentUser.role !== 'ADMIN') return;
+    container.innerHTML = `
+        <div class="space-y-6">
+            <div class="bg-white p-6 rounded-2xl shadow-sm">
+                <h3 class="font-bold mb-4">新增員工</h3>
+                <div class="flex space-x-2">
+                    <input id="s-id" placeholder="員編" class="border p-2 rounded">
+                    <input id="s-name" placeholder="姓名" class="border p-2 rounded">
+                    <input id="s-pw" placeholder="密碼" class="border p-2 rounded">
+                    <select id="s-title" class="border p-2 rounded"><option>護理師</option><option>護理長</option></select>
+                    <button onclick="addStaff()" class="bg-blue-600 text-white px-4 rounded">建立</button>
+                </div>
+            </div>
+            <div class="bg-white rounded-2xl shadow-sm overflow-hidden">
+                <table class="w-full text-left">
+                    <tr class="bg-gray-50 border-b"><th class="p-4">職稱</th><th class="p-4">姓名</th><th class="p-4">員編</th><th class="p-4">操作</th></tr>
+                    ${staff.map(s => `
+                        <tr class="border-b">
+                            <td class="p-4">${s.title}</td><td class="p-4">${s.name}</td><td class="p-4">${s.id}</td>
+                            <td class="p-4"><button onclick="delStaff('${s.id}')" class="text-red-500">刪除</button></td>
+                        </tr>`).join('')}
+                </table>
+            </div>
+        </div>`;
+}
+
+function addStaff() {
+    const id = document.getElementById('s-id').value;
+    const name = document.getElementById('s-name').value;
+    const pw = document.getElementById('s-pw').value;
+    const title = document.getElementById('s-title').value;
+    if(!id || !name || !pw) return alert("必填項目缺失");
+    staff.push({ id, name, password: pw, title, role: title === '護理長' ? 'ADMIN' : 'RN' });
+    save(); switchView('staff');
+}
+
+function delStaff(id) {
+    if(id === currentUser.id) return alert("不能刪除自己");
+    staff = staff.filter(s => s.id !== id);
+    save(); switchView('staff');
+}
+
+// --- 簽章核心 ---
+function signAction(action) {
     pendingAction = action;
+    document.getElementById('sig-info').innerText = `簽署操作：${action}\n執行人：${currentUser.title} ${currentUser.name}`;
     document.getElementById('sign-modal').classList.remove('hidden');
 }
 
-function closeSignModal() {
+function closeSign() {
     document.getElementById('sign-modal').classList.add('hidden');
-    document.getElementById('sig-password').value = '';
+    document.getElementById('sig-pw').value = '';
 }
 
 function confirmSign() {
-    const pw = document.getElementById('sig-password').value;
-    if (pw === currentUser.password) {
-        // 成功後的邏輯
-        const record = {
-            id: Date.now(),
-            action: pendingAction,
-            nurse: `${currentUser.title} ${currentUser.name}`,
-            time: new Date().toLocaleString()
-        };
-        currentPatient.history.unshift(record);
-        saveAll();
-        alert(`簽名成功！\n操作：${pendingAction}\n簽署人：${currentUser.name}`);
-        closeSignModal();
-        switchView('patients');
+    if (document.getElementById('sig-pw').value === currentUser.password) {
+        alert("簽署成功！");
+        closeSign();
+        if (currentView === 'assessment') switchView('patients');
     } else {
-        alert("驗證密碼錯誤，簽章失敗！");
+        alert("密碼錯誤，簽章失敗");
     }
 }
 
-function saveAll() {
-    localStorage.setItem('staff', JSON.stringify(staff));
-    localStorage.setItem('patients', JSON.stringify(patients));
+// --- 輔助 ---
+function save() {
+    localStorage.setItem('nis_staff', JSON.stringify(staff));
+    localStorage.setItem('nis_patients', JSON.stringify(patients));
 }
 
-function logout() {
-    currentUser = null;
-    location.reload();
+function renderSettings(container) {
+    container.innerHTML = `<div class="bg-white p-8 rounded-2xl shadow-sm max-w-sm mx-auto">
+        <h2 class="text-xl font-bold mb-4">修改個人密碼</h2>
+        <input id="p-new" type="password" placeholder="輸入新密碼" class="w-full border p-2 rounded mb-4">
+        <button onclick="updatePw()" class="w-full bg-blue-600 text-white py-2 rounded">更新</button>
+    </div>`;
 }
 
-// --- 模擬給藥介面 ---
-function renderMAR(container) {
-    if (!currentPatient) return container.innerHTML = "<div class='text-center p-20 text-gray-400'>請先選取病患</div>";
-    container.innerHTML = `
-        <div class="bg-white rounded-2xl shadow-sm overflow-hidden">
-            <div class="p-6 bg-blue-600 text-white font-bold text-lg">給藥執行紀錄單 (MAR)</div>
-            <table class="w-full text-left">
-                <thead class="bg-gray-50 border-b">
-                    <tr><th class="p-4">時間</th><th class="p-4">藥名</th><th class="p-4">劑量/途徑</th><th class="p-4">簽章</th></tr>
-                </thead>
-                <tbody>
-                    <tr class="border-b">
-                        <td class="p-4 text-gray-500">09:00</td>
-                        <td class="p-4 font-bold">Aspirin 100mg</td>
-                        <td class="p-4">PO / QD</td>
-                        <td class="p-4"><button onclick="openSignModal('給藥: Aspirin')" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm">密碼簽署</button></td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-    `;
-}
-
-// --- 評估單介面 ---
-function renderAssessment(container) {
-    if (!currentPatient) return container.innerHTML = "<div class='text-center p-20 text-gray-400'>請先選取病患</div>";
-    container.innerHTML = `
-        <div class="max-w-xl mx-auto bg-white p-8 rounded-2xl shadow-sm">
-            <h2 class="text-xl font-bold mb-6">生命徵象評估記錄</h2>
-            <div class="space-y-4">
-                <div class="grid grid-cols-2 gap-4">
-                    <input id="v1" placeholder="體溫" class="border p-3 rounded-xl">
-                    <input id="v2" placeholder="脈搏" class="border p-3 rounded-xl">
-                </div>
-                <button onclick="openSignModal('評估單儲存')" class="w-full bg-green-600 text-white py-4 rounded-xl font-bold">儲存並進行二次驗證簽章</button>
-            </div>
-        </div>
-    `;
+function updatePw() {
+    const np = document.getElementById('p-new').value;
+    const idx = staff.findIndex(s => s.id === currentUser.id);
+    staff[idx].password = np;
+    currentUser.password = np;
+    save(); alert("已更新");
 }
