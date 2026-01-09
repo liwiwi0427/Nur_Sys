@@ -1,15 +1,16 @@
-.nav-btn.active {
-    background-color: #1e293b;
-    border-left: 4px solid #3b82f6;
-    color: #3b82f6;
-    font-weight: bold;
+/* 側邊欄按鈕啟用狀態 */
+.nav-active {
+    background-color: #1e293b !important;
+    border-left: 4px solid #3b82f6 !important;
+    color: #3b82f6 !important;
 }
-.patient-card.selected {
-    border-color: #3b82f6;
-    background-color: #eff6ff;
+
+/* 卡片懸停效果 */
+.card-hover:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s;
 }
-input:focus, select:focus, textarea:focus {
-    border-color: #3b82f6;
-    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
-    outline: none;
-}
+
+/* 隱藏捲軸但保持功能 */
+.no-scrollbar::-webkit-scrollbar { display: none; }
