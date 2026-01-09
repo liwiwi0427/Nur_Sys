@@ -1,16 +1,33 @@
-/* 側邊欄按鈕啟用狀態 */
+/* 側邊欄滑動動畫 */
+#sidebar {
+    transition: transform 0.3s ease-in-out;
+}
+
+@media (max-width: 1024px) {
+    .sidebar-closed {
+        transform: translateX(-100%);
+    }
+    .sidebar-open {
+        transform: translateX(0);
+    }
+}
+
+/* 導覽按鈕啟用狀態 */
 .nav-active {
     background-color: #1e293b !important;
     border-left: 4px solid #3b82f6 !important;
     color: #3b82f6 !important;
 }
 
-/* 卡片懸停效果 */
-.card-hover:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-    transition: all 0.3s;
+/* 防止手機端表格破版 */
+.table-responsive {
+    display: block;
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
 }
 
-/* 隱藏捲軸但保持功能 */
-.no-scrollbar::-webkit-scrollbar { display: none; }
+/* 修正手機輸入框縮放問題 */
+input, select, textarea {
+    font-size: 16px !important; 
+}
